@@ -1,0 +1,30 @@
+# Build artifacts
+/target
+debug/
+**/*.rs.bk
+
+# Cargo lock (uncomment if building a library)
+# Cargo.lock
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# Data / snapshots
+*.db
+*.wal
+*.snap

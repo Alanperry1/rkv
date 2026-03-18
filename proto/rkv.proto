@@ -1,0 +1,169 @@
+syntax = "proto3";
+
+package rkv;
+
+// ─── Client-facing API ───
+
+service KvService {
+    rpc Get(GetRequest) returns (GetResponse);
+    rpc Put(PutRequest) returns (PutResponse);
+    rpc Delete(DeleteRequest) returns (DeleteResponse);
+    rpc Scan(ScanRequest) returns (ScanResponse);
+}
+
+// ─── Inter-node API ───
+
+service InternalService {
+    rpc Replicate(ReplicateRequest) returns (ReplicateResponse);
+    rpc GetInternal(GetInternalRequest) returns (GetInternalResponse);
+    rpc DeleteInternal(DeleteInternalRequest) returns (DeleteInternalResponse);
+    rpc Gossip(GossipMessage) returns (GossipAck);
+    rpc HintedHandoff(HandoffRequest) returns (HandoffResponse);
+    rpc TransferKeys(TransferRequest) returns (TransferResponse);
+}
+
+// ─── Common types ───
+
+message VectorClock {
+    map<string, uint64> clocks = 1;
+}
+
+message VersionedValue {
+    bytes value = 1;
+    VectorClock vector_clock = 2;
+    int64 timestamp_ms = 3;
+    int64 ttl_ms = 4;  // 0 = no expiry
+}
+
+// ─── Client messages ───
+
+message GetRequest {
+    string key = 1;
+    uint32 read_quorum = 2;  // 0 = use default
+}
+
+message GetResponse {
+    bool found = 1;
+    bytes value = 2;
+    VectorClock vector_clock = 3;
+}
+
+message PutRequest {
+    string key = 1;
+    bytes value = 2;
+    int64 ttl_ms = 3;       // 0 = no expiry
+    uint32 write_quorum = 4; // 0 = use default
+    VectorClock vector_clock = 5; // for CAS (compare-and-swap)
+}
+
+message PutResponse {
+    bool success = 1;
+    VectorClock vector_clock = 2;
+}
+
+message DeleteRequest {
+    string key = 1;
+    uint32 write_quorum = 2;
+}
+
+message DeleteResponse {
+    bool success = 1;
+}
+
+message ScanRequest {
+    string start_key = 1;
+    string end_key = 2;
+    uint32 limit = 3;
+}
+
+message ScanResponse {
+    repeated KeyValue pairs = 1;
+}
+
+message KeyValue {
+    string key = 1;
+    bytes value = 2;
+    VectorClock vector_clock = 3;
+}
+
+// ─── Internal messages ───
+
+message ReplicateRequest {
+    string key = 1;
+    VersionedValue value = 2;
+    bool is_delete = 3;
+}
+
+message ReplicateResponse {
+    bool success = 1;
+}
+
+message GetInternalRequest {
+    string key = 1;
+}
+
+message GetInternalResponse {
+    bool found = 1;
+    VersionedValue value = 2;
+}
+
+message DeleteInternalRequest {
+    string key = 1;
+    VectorClock vector_clock = 2;
+}
+
+message DeleteInternalResponse {
+    bool success = 1;
+}
+
+// ─── Gossip ───
+
+message GossipMessage {
+    string sender_id = 1;
+    repeated NodeState nodes = 2;
+}
+
+message NodeState {
+    string node_id = 1;
+    string address = 2;
+    NodeStatus status = 3;
+    uint64 heartbeat = 4;
+    uint64 generation = 5;
+}
+
+enum NodeStatus {
+    ALIVE = 0;
+    SUSPECT = 1;
+    DEAD = 2;
+}
+
+message GossipAck {
+    repeated NodeState nodes = 1;
+}
+
+// ─── Hinted Handoff ───
+
+message HandoffRequest {
+    string target_node_id = 1;
+    repeated HintedWrite hints = 2;
+}
+
+message HintedWrite {
+    string key = 1;
+    VersionedValue value = 2;
+    bool is_delete = 3;
+}
+
+message HandoffResponse {
+    uint32 accepted = 1;
+}
+
+// ─── Key Transfer (rebalancing) ───
+
+message TransferRequest {
+    repeated KeyValue pairs = 1;
+}
+
+message TransferResponse {
+    uint32 accepted = 1;
+}

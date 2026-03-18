@@ -1,0 +1,65 @@
+[package]
+name = "rkv"
+version = "0.1.0"
+edition = "2021"
+description = "A distributed key-value store with consistent hashing, replication, and fault tolerance"
+
+[[bin]]
+name = "rkv-server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "rkv-cli"
+path = "src/bin/cli.rs"
+
+[lib]
+name = "rkv"
+path = "src/lib.rs"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# gRPC
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bincode = "1"
+bytes = "1"
+
+# Hashing
+sha2 = "0.10"
+
+# Concurrent data structures
+dashmap = "6"
+parking_lot = "0.12"
+
+# Logging / tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Utilities
+anyhow = "1"
+thiserror = "2"
+rand = "0.8"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4", features = ["derive"] }
+crc32fast = "1"
+futures = "0.3.32"
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tempfile = "3"
+tokio-test = "0.4"
+
+[[bench]]
+name = "storage_bench"
+harness = false
